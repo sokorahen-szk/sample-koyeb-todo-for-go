@@ -6,12 +6,12 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/", handler)
 	port := 8000
 	http.ListenAndServe(
 		fmt.Sprintf(":%d", port),
 		nil,
 	)
+	http.HandleFunc("/", handler)
 }
 
 func handler(w http.ResponseWriter, _ *http.Request) {
