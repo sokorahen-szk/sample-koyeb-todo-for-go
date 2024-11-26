@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 )
 
 func main() {
-	port := 8000
+	port := os.Getenv("APP_PORT")
 	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
+		Addr:    fmt.Sprintf(":%s", port),
 		Handler: nil,
 	}
 	http.HandleFunc("/", handler)
