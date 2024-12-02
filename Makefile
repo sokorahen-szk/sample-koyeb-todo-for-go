@@ -1,9 +1,11 @@
 APP_NAME := main
+ENV := APP_PORT=8000
 
 run:
-	go build -o $(APP_NAME) main.go
-	APP_PORT=8000 \
-		./$(APP_NAME)
+	$(ENV) go run *.go
+
+build:
+	$(ENV) go build -o $(APP_NAME) main.go
 
 clean:
 	rm -f $(APP_NAME)
