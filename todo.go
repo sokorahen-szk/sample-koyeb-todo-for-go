@@ -23,9 +23,8 @@ func NewCreateTodoFactory(name, description string) Todo {
 }
 
 type TodoList struct {
-	items                []Todo
-	maxTodoLength        int
-	todoIncrementCounter int
+	items         []Todo
+	maxTodoLength int
 }
 
 type TodoListOption func(*TodoList)
@@ -33,9 +32,8 @@ type TodoListOption func(*TodoList)
 func NewTodoList(options ...TodoListOption) *TodoList {
 	defaultTodoMaxLimit := 10
 	tl := &TodoList{
-		items:                make([]Todo, 0, defaultTodoMaxLimit),
-		maxTodoLength:        defaultTodoMaxLimit,
-		todoIncrementCounter: 0,
+		items:         make([]Todo, 0, defaultTodoMaxLimit),
+		maxTodoLength: defaultTodoMaxLimit,
 	}
 
 	for _, opt := range options {
