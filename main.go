@@ -9,18 +9,8 @@ import (
 	"os"
 )
 
-type Todo struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-const MAX_TODO_LENGTH = 10
-
 // NOTE: 簡略化のためメモリ上に保存する
-var todos = make([]Todo, 0, MAX_TODO_LENGTH)
-
-var incrementCounter = 0
+var todos = NewTodoList()
 
 func main() {
 	port := os.Getenv("APP_PORT")
@@ -49,7 +39,7 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	res := struct {
 		Todos []Todo `json:"todos"`
 	}{
-		Todos: todos,
+		Todos: todos.List(),
 	}
 
 	if err := json.NewEncoder(w).Encode(res); err != nil {
@@ -63,11 +53,6 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 func addTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
-	if len(todos) >= MAX_TODO_LENGTH {
-		w.WriteHeader(http.StatusTooManyRequests)
-		return
-	}
-
 	req := struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -83,12 +68,19 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	incrementCounter = incrementCounter + 1
-	todos = append(todos, Todo{
-		ID:          fmt.Sprintf("%d", incrementCounter),
-		Name:        req.Name,
-		Description: req.Description,
-	})
+	createdTodo := NewCreateTodoFactory(
+		req.Name,
+		req.Description,
+	)
+
+	if !todos.Add(createdTodo) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(createdTodo); err != nil {
+		log.Println(err)
+	}
 
 	return
 }
@@ -98,15 +90,11 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	id := r.PathValue("id")
-	for idx, todo := range todos {
-		if todo.ID == id {
-			todos = todos[:idx+copy(todos[idx:], todos[idx+1:])]
-
-			return
-		}
+	if todos.Get(id) == nil {
+		w.WriteHeader(http.StatusNotFound)
 	}
+	todos = todos.Remove(id)
 
-	w.WriteHeader(http.StatusNotFound)
 	return
 }
 
@@ -115,17 +103,15 @@ func getTodo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	id := r.PathValue("id")
-	for _, todo := range todos {
-		if todo.ID == id {
-			if err := json.NewEncoder(w).Encode(todo); err != nil {
-				log.Println(err)
-			}
-
-			return
-		}
+	todo := todos.Get(id)
+	if todo == nil {
+		w.WriteHeader(http.StatusNotFound)
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	if err := json.NewEncoder(w).Encode(todo); err != nil {
+		log.Println(err)
+	}
+
 	return
 }
 
@@ -135,6 +121,7 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 	req := struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
+		IsDone      bool   `json:"is_done"`
 	}{}
 
 	b, err := io.ReadAll(r.Body)
@@ -148,17 +135,21 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := r.PathValue("id")
-	for idx, todo := range todos {
-		if todo.ID == id {
-			todos[idx] = Todo{
-				ID:          todo.ID,
-				Name:        req.Name,
-				Description: req.Description,
-			}
-			return
-		}
+	todo := todos.Get(id)
+	if todo == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	updatedTodo := NewTodo(todo.ID, req.Name, req.Description, req.IsDone)
+	if !todos.Update(updatedTodo) {
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(updatedTodo); err != nil {
+		log.Println(err)
+	}
+
 	return
 }
