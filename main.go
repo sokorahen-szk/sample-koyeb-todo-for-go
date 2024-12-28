@@ -7,10 +7,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 )
 
 // NOTE: 簡略化のためメモリ上に保存する
 var todos = NewTodoList()
+var mu sync.Mutex
 
 func main() {
 	port := os.Getenv("APP_PORT")
@@ -45,12 +47,13 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		log.Println(err)
 	}
-
-	return
 }
 
 // addTodo TODOを追加する
 func addTodo(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	req := struct {
@@ -81,12 +84,13 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(createdTodo); err != nil {
 		log.Println(err)
 	}
-
-	return
 }
 
 // deleteTodo TODOを削除する
 func deleteTodo(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	id := r.PathValue("id")
@@ -94,8 +98,6 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 	todos = todos.Remove(id)
-
-	return
 }
 
 // getTodo TODOを取得する
@@ -111,11 +113,12 @@ func getTodo(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(todo); err != nil {
 		log.Println(err)
 	}
-
-	return
 }
 
 func updateTodo(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	req := struct {
@@ -150,6 +153,4 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(updatedTodo); err != nil {
 		log.Println(err)
 	}
-
-	return
 }
