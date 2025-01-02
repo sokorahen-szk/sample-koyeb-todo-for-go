@@ -15,7 +15,7 @@ var todos = NewTodoList()
 var mu sync.Mutex
 
 func main() {
-	port := os.Getenv("APP_PORT")
+	port := os.Getenv("PORT")
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
 		Handler: nil,

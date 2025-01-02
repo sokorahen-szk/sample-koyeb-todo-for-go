@@ -1,11 +1,11 @@
 APP_NAME := main
-ENV := APP_PORT=8000
+ENV := PORT=8080
 
 run:
 	$(ENV) go run *.go
 
 build:
-	$(ENV) go build -o $(APP_NAME) main.go
+	$(ENV) go build -o $(APP_NAME) *.go
 
 clean:
 	rm -f $(APP_NAME)
