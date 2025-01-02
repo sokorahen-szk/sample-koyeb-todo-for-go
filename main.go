@@ -8,14 +8,19 @@ import (
 	"net/http"
 	"os"
 	"sync"
+
+	t "github.com/sokorahen-szk/sample-koyeb-todo-for-go/todo"
 )
 
 // NOTE: 簡略化のためメモリ上に保存する
-var todos = NewTodoList()
+var todos = t.NewTodoList()
 var mu sync.Mutex
 
 func main() {
 	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("PORT is not set")
+	}
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
 		Handler: nil,
@@ -39,7 +44,7 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	res := struct {
-		Todos []Todo `json:"todos"`
+		Todos []t.Todo `json:"todos"`
 	}{
 		Todos: todos.List(),
 	}
@@ -71,7 +76,7 @@ func addTodo(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
-	createdTodo := NewCreateTodoFactory(
+	createdTodo := t.NewCreateTodoFactory(
 		req.Name,
 		req.Description,
 	)
@@ -144,7 +149,7 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedTodo := NewTodo(todo.ID, req.Name, req.Description, req.IsDone)
+	updatedTodo := t.NewTodo(todo.ID, req.Name, req.Description, req.IsDone)
 	if !todos.Update(updatedTodo) {
 		w.WriteHeader(http.StatusNotAcceptable)
 		return
